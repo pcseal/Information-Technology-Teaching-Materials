@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>汉诺塔递归演示</title>
+<style>
+  body { font-family: Consolas, monospace; display: flex; gap: 40px; }
+  .code-box {
+    width: 350px;
+    background: #1e1e1e;
+    color: #dcdcdc;
+    padding: 15px;
+    border-radius: 10px;
+    line-height: 1.5em;
+    white-space: pre;
+    font-size: 14px;
+  }
+  .highlight { background: #44475a; color: #50fa7b; }
+  .tower-area { display: flex; justify-content: space-around; align-items: flex-end; width: 500px; height: 300px; border-top: 2px solid #333; position: relative; }
+  .peg { width: 10px; height: 200px; background: #444; position: relative; }
+  .disk {
+    height: 20px;
+    border-radius: 5px;
+    position: absolute;
+    transition: bottom 0.4s ease;
+  }
+  button { margin-top: 8px; padding: 6px 14px; font-size: 14px; }
+  .log-box {
+    width: 300px;
+    height: 300px;
+    background: #f5f5f5;
+    border: 1px solid #aaa;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+  }
+  .indent { margin-left: 20px; }
+</style>
+</head>
+<body>
+
+<div class="code-box" id="code">
+def move(n,a,b,c):
+    if n==1:
+        print(a,'->',c)
+        return
+    move(n-1,a,c,b)
+    move(1,a,b,c)
+    move(n-1,b,a,c)
+
+move(3,'A','B','C')
+</div>
+
+<div>
+  <div class="tower-area" id="towers">
+    <div class="peg" id="pegA"></div>
+    <div class="peg" id="pegB"></div>
+    <div class="peg" id="pegC"></div>
+  </div>
+  <button onclick="start()">重新开始</button>
+  <button onclick="nextStep()">下一步</button>
+</div>
+
+<div class="log-box" id="log"></div>
+
+<script>
+// ========== 初始化塔 ==========
+const pegs = { A: [], B: [], C: [] };
+const towerDivs = { A: document.getElementById("pegA"),
+                    B: document.getElementById("pegB"),
+                    C: document.getElementById("pegC") };
+
+function initDisks(n=3) {
+  for (let key in pegs) pegs[key] = [];
+  document.querySelectorAll(".disk").forEach(e=>e.remove());
+  for (let i=n; i>=1; i--) {
+    const d = document.createElement("div");
+    d.className = "disk";
+    d.style.width = (40+ i*40)+"px";
+    d.style.background = `hsl(${i*60},70%,60%)`;
+    d.dataset.size = i;
+    towerDivs["A"].appendChild(d);
+    pegs["A"].push(d);
+  }
+  updatePositions();
+}
+
+// ========== 更新圆盘位置 ==========
+function updatePositions() {
+  for (let key in pegs) {
+    pegs[key].forEach((disk, idx) => {
+      disk.style.left = (-disk.offsetWidth/2 + 5)+"px";
+      disk.style.bottom = (idx*22)+"px";
+    });
+  }
+}
+
+// ========== 高亮代码 ==========
+const codeBox = document.getElementById("code");
+const codeLines = codeBox.innerText.split("\n");
+function highlightLine(lineIndex) {
+  codeBox.innerHTML = codeLines.map((l,i)=>
+    i===lineIndex ? `<div class="highlight">${l}</div>` : `<div>${l}</div>`
+  ).join("");
+}
+
+// ========== 日志输出 ==========
+const logBox = document.getElementById("log");
+function log(msg, indent=0) {
+  const p = document.createElement("div");
+  p.innerHTML = "&nbsp;".repeat(indent*4) + msg;
+  logBox.appendChild(p);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ========== 递归求解并记录步骤 ==========
+let steps = [];
+function hanoi(n,a,b,c,depth=0){
+  steps.push({type:"call", line:0, msg:`调用 move(${n}, ${a}, ${b}, ${c})`, depth});
+  if(n===1){
+    steps.push({type:"highlight", line:1, depth});
+    steps.push({type:"print", from:a, to:c, line:2, depth});
+    steps.push({type:"highlight", line:3, depth});
+    steps.push({type:"return", msg:`返回 move(${n}, ${a}, ${b}, ${c})`, depth});
+  } else {
+    steps.push({type:"highlight", line:4, depth});
+    hanoi(n-1,a,c,b,depth+1);
+    steps.push({type:"print", from:a,to:c,line:5, depth});
+    hanoi(n-1,b,a,c,depth+1);
+    steps.push({type:"return", msg:`返回 move(${n}, ${a}, ${b}, ${c})`, depth});
+  }
+}
+
+// ========== 执行控制 ==========
+let stepIndex=0;
+function start(){
+  initDisks(3);
+  logBox.innerHTML="";
+  steps=[];
+  hanoi(3,"A","B","C");
+  stepIndex=0;
+  highlightLine(0);
+}
+
+function nextStep(){
+  if(stepIndex>=steps.length) return;
+  const s=steps[stepIndex];
+  if(s.type==="call") log(s.msg,s.depth);
+  if(s.type==="return") log(s.msg,s.depth);
+  if(s.type==="highlight") highlightLine(s.line);
+  if(s.type==="print"){
+    log(`${s.from} -> ${s.to}`, s.depth);
+    const disk = pegs[s.from].pop();
+    pegs[s.to].push(disk);
+    towerDivs[s.to].appendChild(disk);
+    updatePositions();
+    highlightLine(s.line);
+  }
+  stepIndex++;
+}
+</script>
+
+</body>
+</html>
