@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宫生成与寻路</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            text-align: center;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        #maze-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        #maze-img {
+            max-width: 600px;
+            border-radius: 10px;
+            display: block;
+        }
+
+        /* 遮罩层 */
+        #loading-overlay {
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* loading 圆圈 */
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>迷宫生成与寻路</h1>
+
+    <!-- 按钮 -->
+    <div>
+        <form action="/generate" style="display: inline;">
+            <button type="submit" class="btn">生成迷宫</button>
+        </form>
+
+        <form action="/solve" method="post" id="solveForm" style="display: inline;">
+            <button type="submit" class="btn">寻找出口</button>
+        </form>
+    </div>
+
+    <!-- 迷宫区域 -->
+    <div id="maze-container">
+        {% if filename %}
+            <img id="maze-img" src="{{ url_for('static', filename=filename) }}" alt="maze">
+        {% endif %}
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("solveForm").addEventListener("submit", function(event) {
+            event.preventDefault();  
+            solveMaze();  
+        });
+
+        function solveMaze() {
+            const overlay = document.getElementById("loading-overlay");
+            const mazeImg = document.getElementById("maze-img");
+
+            overlay.style.display = "flex";  // 显示 loading 覆盖层
+            mazeImg.style.opacity = "0.5";   // 迷宫半透明
+
+            fetch("/solve")
+                .then(response => response.json())
+                .then(data => {
+                    overlay.style.display = "none";  // 关闭 loading
+                    mazeImg.style.opacity = "1";     // 恢复迷宫
+
+                    const snapshots = data.snapshots;
+                    if (snapshots && snapshots.length > 0) {
+                        let i = 0;
+                        const interval = setInterval(() => {
+                            if (i >= snapshots.length) {
+                                clearInterval(interval);
+                                return;
+                            }
+                            mazeImg.src = "/static/" + snapshots[i] + "?t=" + new Date().getTime();
+                            i++;
+                        }, 150);
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

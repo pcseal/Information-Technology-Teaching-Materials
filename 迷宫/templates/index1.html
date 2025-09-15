@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迷宫生成与寻路</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f4f6f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s, opacity 0.3s;
+        }
+
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2980b9;
+        }
+
+        #maze-container {
+            margin-top: 20px;
+            position: relative;
+            display: inline-block;
+        }
+
+        #maze-img {
+            max-width: 600px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+
+        /* 加载层 */
+        #loading-overlay {
+            position: absolute; 
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            align-items: center; 
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+        }
+
+        /* 中心旋转动画 */
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>迷宫生成与寻路</h1>
+
+    <!-- 生成迷宫按钮 -->
+    <form action="/generate" method="get" id="generateForm">
+        <button type="submit" id="generateBtn">生成迷宫</button>
+    </form>
+
+    <!-- 求解迷宫按钮 -->
+    <form action="/solve" method="post" id="solveForm">
+        <button type="submit" id="solveBtn" >寻找出口</button>
+    </form>
+
+    <!-- 显示迷宫 / 加载动画 -->
+    <div id="maze-container">
+        {% if filename %}
+            <img id="maze-img" src="{{ url_for('static', filename=filename) }}" alt="maze">
+        {% endif %}
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        const generateBtn = document.getElementById("generateBtn");
+        const solveBtn = document.getElementById("solveBtn");
+        const overlay = document.getElementById("loading-overlay");
+        const mazeImg = document.getElementById("maze-img");
+
+        // 生成迷宫逻辑
+        document.getElementById("generateForm").addEventListener("submit", function(event) {
+            
+        });
+
+        // 求解迷宫逻辑
+        document.getElementById("solveForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            disableButtons();
+            overlay.style.display = "flex";
+            mazeImg.style.opacity = "0.5";
+
+            fetch("/solve")
+                .then(response => response.json())
+                .then(data => {
+                    overlay.style.display = "none";
+                    mazeImg.style.opacity = "1";
+
+                    const snapshots = data.snapshots;
+                    if (snapshots && snapshots.length > 0) {
+                        let i = 0;
+                        const interval = setInterval(() => {
+                            if (i >= snapshots.length) {
+                                clearInterval(interval);
+                                enableButtons(true);
+                                return;
+                            }
+                            mazeImg.src = "/static/" + snapshots[i] + "?t=" + new Date().getTime();
+                            i++;
+                        }, 150);
+                    } else {
+                        enableButtons(true);
+                    }
+                });
+        });
+
+        // 工具函数：禁用所有按钮
+        function disableButtons() {
+            generateBtn.disabled = true;
+            solveBtn.disabled = true;
+        }
+
+        // 工具函数：启用按钮
+        function enableButtons(allowSolve) {
+            generateBtn.disabled = false;
+            solveBtn.disabled = !allowSolve;
+        }
+    </script>
+</body>
+</html>
